@@ -12,12 +12,17 @@ class RobustMaxReturnSolver(MaxReturnSolver):
         self.z = 0
 
     def solve_without_round(self):
-        solve_result = super(RobustMaxReturnSolver).solve_without_round()
+        solve_result = MaxReturnSolver(self.param).solve_without_round()
         w_tilde = solve_result['expected_weight']
-        adjust_term = np.sqrt(self.kappa ** 2 / (w_tilde).T * self.estimated_alpha_cov * w_tilde)
-        adjust_alpha = self.alpha_series - adjust_term * self.estimated_alpha_cov * w_tilde
+        print('w_tilde', w_tilde)
+        adjust_term = np.sqrt(self.kappa ** 2 / (w_tilde).T.dot(self.estimated_alpha_cov).dot(w_tilde))
+        # print('adjust_term', adjust_term)
+        # print(self.estimated_alpha_cov)
+        adjust_alpha = self.alpha_series - adjust_term * self.estimated_alpha_cov.dot(w_tilde)
+        print(adjust_alpha)
 
         self.param['alpha_series'] = adjust_alpha
 
-        super(RobustMaxReturnSolver).solve_without_round()
+        solve_result = MaxReturnSolver(self.param).solve_without_round()
+        return solve_result
 
