@@ -38,7 +38,7 @@ class MaxReturnSolver:
             assert (el.is_dcp())
 
         prob = cvx.Problem(objective, constraints)
-        prob.solve(solver=self.solver, verbose=True)
+        prob.solve(solver=self.solver, verbose=False)
 
         # 返回结果
         after_trade_value = self.market_value * pd.Series(index=self.alpha_series.index, data=w_c.value)
@@ -74,8 +74,6 @@ class MinRiskSolver:
         self.solver = param['solver']
 
     def solve_without_round(self):
-        print(self.asset_upper_boundary_series)
-        print(self.asset_lower_boundary_series)
         w_c = cvx.Variable(self.alpha_series.size, nonneg=True)
         # 目标函数
         bm = np.array(self.benchmark_weight_series.values)
@@ -100,7 +98,7 @@ class MinRiskSolver:
             assert (el.is_dcp())
 
         prob = cvx.Problem(objective, constraints)
-        prob.solve(solver=cvx.MOSEK, verbose=True)
+        prob.solve(solver=cvx.MOSEK, verbose=False)
         # 返回结果
         after_trade_value = self.market_value * pd.Series(index=self.alpha_series.index, data=w_c.value)
         after_trade_volume = np.round(after_trade_value / self.current_price)
@@ -156,7 +154,7 @@ class MaxSharpeRatioSolver:
             assert (el.is_dcp())
 
         prob = cvx.Problem(objective, constraints)
-        prob.solve(solver=cvx.MOSEK, verbose=True)
+        prob.solve(solver=cvx.MOSEK, verbose=False)
 
         # 返回结果
         after_trade_value = self.market_value * pd.Series(index=self.alpha_series.index, data=w_c.value)
