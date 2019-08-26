@@ -155,7 +155,8 @@ class MaxSharpeRatioSolver:
 
         prob = cvx.Problem(objective, constraints)
         prob.solve(solver=cvx.MOSEK, verbose=False)
-
+        F = np.random.randn(3,2)
+        x0 = np.random.randn(2)
         # 返回结果
         after_trade_value = self.market_value * pd.Series(index=self.alpha_series.index, data=w_c.value)
         print('w_c', w_c.value)
@@ -175,3 +176,4 @@ class MaxSharpeRatioSolver:
             "opt_status": prob.status
         }
         return solve_result
+

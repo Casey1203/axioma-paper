@@ -159,8 +159,8 @@ class RobustEfficientFrontier:
             max_ret = self.param['alpha_series'].max()
         else:
             max_ret = max_return_result['expected_weight'].dot(self.param['alpha_series'])
-        # alpha_series_min = self.param['alpha_series'].drop('cash').min()
-        # alpha_series_max = self.param['alpha_series'].drop('cash').max()
+        alpha_series_min = self.param['alpha_series'].drop('cash').min()
+        alpha_series_max = self.param['alpha_series'].drop('cash').max()
         # if min_ret > alpha_series_min:
         #     min_ret = alpha_series_min
         # if max_ret <= alpha_series_max:
