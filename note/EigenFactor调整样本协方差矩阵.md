@@ -2,13 +2,13 @@
 
 定义主动收益率
 $$
-f_m=r_m-R_t^M
+f_m=r_m-R_t^M \tag{1}
 $$
 其中$r_m$是股票在第$t$天的收益率向量。$R_t^M$是$t$天的市场收益率，一般会定义为股票的市值加权收益率。根据性质，对$f_m$进行市值加权的结果等于0。
 
 接下来定义样本协方差矩阵
 $$
-V_0(mn)=\frac{1}{T-1}\sum_{t=1}^T{(f_{mt}-\overline{f_m})(f_{nt}-\overline{f_n})}
+V_0(mn)=\frac{1}{T-1}\sum_{t=1}^T{(f_{mt}-\overline{f_m})(f_{nt}-\overline{f_n})} \tag{2}
 $$
 其中$T=200$。这里写成了矩阵中每个元素的形式。下标$m$和$n$表示第$m$和$n$只股票。
 
@@ -16,11 +16,11 @@ $$
 
 定义$R_t$为投资组合在第$t$天的收益率，$\sigma_t$为在$t$天给出的波动率预测。利用$\sigma_t$对收益率进行标准化，得到z值
 $$
-b_t=\frac{R_t}{\sigma_t}
+b_t=\frac{R_t}{\sigma_t} \tag{3}
 $$
 z值得标准差就是偏差统计量
 $$
-B=\sqrt{\frac{1}{\tau-1} \sum_{t=1}^{\tau}\left(b_{t}-\overline{b}\right)^{2}}
+B=\sqrt{\frac{1}{\tau-1} \sum_{t=1}^{\tau}\left(b_{t}-\overline{b}\right)^{2}} \tag{4}
 $$
 其中$\tau$是测试窗口大小，可以设置成滚动窗口。
 
@@ -38,13 +38,13 @@ $$
 
 **随机组合**：产生100个随机组合。他们的收益率为
 $$
-R_{t}^{l}=\sum_{n} \varepsilon_{n}^{l} f_{n t}
+R_{t}^{l}=\sum_{n} \varepsilon_{n}^{l} f_{n t} \tag{5}
 $$
 上标$l$表示第$l$个组合，$\epsilon_n^l$表示第$l$个组合中第$n$只股票的权重，由标准正态分布采样得到，这个向量是均值为0，表示现金中性。图(1.b)表示这些组合的偏差统计量，它们均在1附近，表示样本协方差$V_0$对随机组合的风险预测还不错。
 
 **特征组合**：对样本协方差$V_0$做对角化，使得它不在对角线上的元素为0。对角线上的元素表示特征组合的方差，而非对角线上元素为0，表明特征组合之间是两两不想关的。
 $$
-R_{t}^{k}=\sum_{n} u_{n t}^{k} f_{n t}
+R_{t}^{k}=\sum_{n} u_{n t}^{k} f_{n t} \tag{6}
 $$
 其中上标$k$表示第$k$个特征组合，$R_t^k$表示特征组合$k$在第$t$天的收益率。$u_{nt}^k$表示特征组合$k$中第$n$个股票的权重。特征组合在经济上没有直接的含义，但是它与投资组合优化息息相关。例如目标函数是最小化组合方差，同时要求组合权重的平方和等于1，等价于求解了方差最小的特征组合。类似的，如果目标函数是最大化组合方差，那就等价于求解方差最大的特征组合。
 
@@ -52,15 +52,15 @@ $$
 
 **优化组合**：直接来分析经过优化的组合的偏差统计量。我们随机产生100个alpha信号。
 $$
-\alpha_{nt}^j=\alpha_n^j-\overline{\alpha_t}^j
+\alpha_{nt}^j=\alpha_n^j-\overline{\alpha_t}^j \tag{7}
 $$
 其中$\alpha_n^j$从标准正态分布中采样得到，上标$j$表示第$j$个随机生成的alpha信号，$\overline{\alpha_t}^j$是由市值对$\alpha_n^j$加权求平均得到，这样保证了$\alpha_{nt}$是市值中性的。接着我们利用样本协方差$V_0$来构建最小方差组合，要求组合的alpha等于1。这样得到组合$h_{nt}^j$，它的收益率为
 $$
-R_t^j=\sum_{n}h_{nt}^j f_{nt}
+R_t^j=\sum_{n}h_{nt}^j f_{nt} \tag{8}
 $$
 它的偏差统计量如图(1.d)。看到它的偏差统计量在1.4到1.5之间，平均为1.45。假设股票的收益率服从正态分布，并且平稳，那么利用窗口期为$T$估计的$N$个资产的协方差$V_0$进行投资组合优化，得到的组合的预测标准差和真实标准差满足以下关系。
 $$
-\sigma_{True}=\frac{\sigma_{Pred}}{1-(N/T)}
+\sigma_{True}=\frac{\sigma_{Pred}}{1-(N/T)} \tag{9}
 $$
 根据这个关系，我们大致可以算出投资组合的偏差统计量为1.33，小于实验得到的1.45，可能的原因是真实获得的收益率数据不满足正态分布且平稳的假设，从而引入了协方差矩阵的估计偏差。
 
@@ -70,12 +70,81 @@ $$
 
 定义仿真的波动率偏差为
 $$
-\lambda_t(k)=\frac{1}{M} \sum_{m}\frac{\tilde{\sigma}_{mt}(k)}{\sigma_{mt}(k)}
+\lambda_t(k)=\frac{1}{M} \sum_{m}\frac{\tilde{\sigma}_{mt}(k)}{\sigma_{mt}(k)} \tag{10}
 $$
 其中$\tilde{\sigma}_{mt}(k)$表示仿真的特征组合$k$真实的标准差。$\sigma_{mt}(k)$表示预测的标准差。我们可以在时间序列上计算一个平均值
 $$
-\overline{\lambda}(k)=\frac{1}{T}\sum_{t}\lambda_t(k)
+\overline{\lambda}(k)=\frac{1}{T}\sum_{t}\lambda_t(k) \tag{11}
 $$
 我们把$\overline{\lambda}(k)$按照仿真特征组合的方差从小到大排序画出来，得到图2，预测方差最小的仿真特征组合的波动率偏差为1.5，而预测方差最大的仿真特征组合的波动率偏差则为0.96，整体的波动率偏差的分布和图(1.c)很相近。
 
 ![ori bias test](https://raw.githubusercontent.com/Casey1203/axioma-paper/master/note/img/vol_bias.png)
+
+图(2)中不仅画了波动率偏差的均值，还在时间序列上找到了1分位数和99分位数，图像也验证了波动率偏差在时间序列上很稳定，可以作为表示特征组合的波动率预测偏差。然而，在仿真过程中，我们假设了正态分布和序列平稳，因此为了要完全地去掉特征组合的波动率预测偏差，我们必须做一定的尺度变化。
+
+接下来我们介绍如何做样本协方差矩阵$V_0$的特征调整。
+
+首先再定义一遍$V_0$
+$$
+\mathbf{V}_{0}=\frac{\mathbf{f} \cdot \mathbf{f}^{\prime}}{T-1} \tag{12}
+$$
+其中$\mathbf{f}$是$N\times T$的矩阵，表示资产的主动收益率，其中$T>N$，即$\mathbf{V}_0$满秩。
+
+接着我们对$\mathbf{V}_0$对角化。
+$$
+\mathbf{D}_{0}=\mathbf{U}_{0}^{\prime} \mathbf{V}_{0} \mathbf{U}_{0} \tag{13}
+$$
+其中$\mathbf{U}_{0}$是$N \times N$是设计矩阵，每列表示$V_0$的特征向量，共$N$个。第$k$列的第$n$个元素，表示特征组合$k$的第$n$个股票的权重，如$(6)$式中的$u_{nt}^k$。这些特征组合是两两不相关。$D_0$是对角矩阵，每个元素表示对应的特征组合的方差。
+
+我们利用$\mathbf{V}_0$表示真实的协方差矩阵，并且采样出收益率序列，服从正态分布。
+$$
+\mathbf{f}_{m}=\mathbf{U}_{0} \mathbf{b}_{m} \tag{14}
+$$
+其中，$\mathbf{b}_m$是$N \times T$矩阵，表示特征组合的收益率，其中第$k$行的收益率是从$\mathbf{D}_0$中对角线的第$k$个元素，作为正态分布的方差，均值为0，采样得到的。那么式$(14)$中的收益率对应的真实协方差矩阵为$\mathbf{V_0}$。对应的样本协方差为
+$$
+\mathbf{V}_{m}=\frac{\mathbf{f}_m \cdot \mathbf{f}_m^{\prime}}{T-1} \tag{15}
+$$
+$\mathbf{V}_m$和$\mathbf{V}_0$的关系是$E[\mathbf{V}_m]=\mathbf{V}_0$，$\mathbf{V}_m$是$\mathbf{V}_0$的无偏估计。
+
+我们对$\mathbf{V}_m$进行对角化。
+$$
+\mathbf{D}_{m}=\mathbf{U}_{m}^{\prime} \mathbf{V}_{m} \mathbf{U}_{m}
+$$
+其中$\mathbf{U}_m$表示仿真特征组合，对应的方差在$\mathbf{D}_m$的对角线上。
+
+我们计算仿真特征组合的真实协方差矩阵
+$$
+\tilde{\mathbf{D}}_{m}=\mathbf{U}_{m}^{\prime} \mathbf{V}_{0} \mathbf{U}_{m}
+$$
+因为$\mathbf{U}_m$和$\mathbf{V}_0$不匹配，所以$\tilde{\mathbf{D}}_{m}$不是对角矩阵。图(2)说明了仿真特征矩阵的预测方差$\mathbf{D}_m$是有偏的，即$E\left[D_{m}(k)\right] \neq \tilde{D}_{m}(k)$。我们可以计算波动率偏差
+$$
+\lambda(k)=\frac{1}{M} \sum_{m} \sqrt{\frac{\tilde{D}_{m}(k)}{D_{m}(k)}}
+$$
+$M$表示仿真的次数。
+
+接下来我们进行尺度变换，来解决正态性和平稳性的问题
+$$
+\gamma(k)=a[\lambda(k)-1]+1
+$$
+我们将仿真的波动率偏差相对于1做了一个偏离，$a$是一个常数，一般取1.4可以有效地去除仿真特征组合的偏差。
+
+至此我们定义了预测和真实的波动率偏差，仿真结束。
+
+我们认为在实际情况中，利用样本估计的样本协方差矩阵$\mathbf{V}_0$也同样存在和$\mathbf{V}_m$一样的估计偏差。因此我们要对$\mathbf{V}_0$进行去偏差。做法是
+$$
+\tilde{\mathbf{D}}_{0}=\bold{\gamma}^{2} \mathbf{D}_{0}
+$$
+其中$\gamma^{2}$是一个对角矩阵，元素均来自$\gamma^{2}(k)$。
+
+接着我们将去偏差的矩阵还原成资产的协方差矩阵
+$$
+\tilde{\mathbf{V}}_{0}=\mathbf{U}_{0} \tilde{\mathbf{D}}_{0} \mathbf{U}_{0}^{\prime}
+$$
+到这里就完成了资产协方差矩阵的特征调整。
+
+回顾原始的样本协方差矩阵$\mathbf{V}_0$，它对角线上的元素表示个股的方差，图(1.a)告诉我们$\mathbf{V}_0$对个股波动率的预测还不错。但是$\tilde{\mathbf{V}}_{0}$对角线的元素发生了变化，这会不会引入对个股波动率预测的偏差呢？我们利用$\tilde{\mathbf{V}}_{0}$做一次偏差统计量的实验。
+
+![ori bias test](https://raw.githubusercontent.com/Casey1203/axioma-paper/master/note/img/eigen_bias_test.png)
+
+我们发现图(3.a)中，个股层面的偏差统计量，确实存在着预测波动率的偏差，有的股票高估，有的低估，但是从组合的角度来看，这些高估和低估被抵消了，这个结论可以由图(3.b,c,d)得出结论。
+
