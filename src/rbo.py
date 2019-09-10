@@ -4,78 +4,90 @@ import pandas as pd
 from src.solver import *
 from sklearn.metrics.pairwise import cosine_similarity
 
-class RobustMaxReturnSolver(MaxReturnSolver):
-    def __init__(self, param):
-        super(RobustMaxReturnSolver, self).__init__(param)
-        self.param = param.copy()
-        self.estimated_alpha_cov = param['estimated_alpha_cov']
-        self.kappa = param['kappa']
-
-    def solve_without_round(self):
-        solve_result = MaxReturnSolver(self.param).solve_without_round()
-        w_tilde = solve_result['expected_weight']
-        adjust_term = np.sqrt(self.kappa ** 2 / (w_tilde-self.benchmark_weight_series).T.dot(self.estimated_alpha_cov).dot(w_tilde-self.benchmark_weight_series))
-        adjust_alpha = self.alpha_series - adjust_term * self.estimated_alpha_cov.dot(w_tilde-self.benchmark_weight_series)
-        self.param['alpha_series'] = adjust_alpha
-        # print(
-        #     cosine_similarity(adjust_alpha.values.reshape(1, -1), self.param['alpha_true'].values.reshape(1, -1)))
-        robust_solve_result = MaxReturnSolver(self.param).solve_without_round()
-        return robust_solve_result
-
 # class RobustMaxReturnSolver(MaxReturnSolver):
 #     def __init__(self, param):
 #         super(RobustMaxReturnSolver, self).__init__(param)
-#         self.param = param
+#         self.param = param.copy()
 #         self.estimated_alpha_cov = param['estimated_alpha_cov']
 #         self.kappa = param['kappa']
 #
 #     def solve_without_round(self):
-#         w_c = cvx.Variable(self.alpha_series.size, nonneg=True)
-#         t = cvx.Variable(1, nonneg=True)
-#         norm = cvx.norm(cvx.matmul(np.linalg.cholesky(self.estimated_alpha_cov), w_c), 2)
-#         # 目标函数
-#         ret = np.array(self.alpha_series.values)
-#         objective = cvx.Maximize(cvx.sum(ret.T * w_c) - self.kappa * norm)
-#         # 股票权重 + 现金权重 = 1
-#         sum_cons = cvx.sum(w_c) == 1
-#         # 风险约束
-#         risk_cons = cvx.quad_form((w_c - self.benchmark_weight_series), self.asset_ret_cov) <= self.target_risk ** 2
-#         asset_lower_bounds_cons = w_c >= self.asset_lower_boundary_series.values
-#         asset_upper_bounds_cons = w_c <= self.asset_upper_boundary_series.values
-#         # estimated error constraint
-#         # estimated_error_cons = cvx.SOC(t, np.nan_to_num(np.sqrt(self.estimated_alpha_cov), 0.)@w_c)
-#         # estimated_error_cons = cvx.square(t) >= cvx.quad_form(w_c, self.estimated_alpha_cov)
-#
-#         constraints = [sum_cons, risk_cons]
-#         if asset_lower_bounds_cons is not None:
-#             constraints += [asset_lower_bounds_cons]
-#         if asset_upper_bounds_cons is not None:
-#             constraints += [asset_upper_bounds_cons]
-#
-#         for el in constraints:
-#             assert (el.is_dcp())
-#
-#         prob = cvx.Problem(objective, constraints)
-#         prob.solve(solver=self.solver, verbose=False)
-#
-#         # 返回结果
-#         after_trade_value = self.market_value * pd.Series(index=self.alpha_series.index, data=w_c.value)
-#         after_trade_volume = np.round(after_trade_value / self.current_price)
-#         after_trade_volume.fillna(0, inplace=True)
-#         after_trade_ratio = after_trade_value / after_trade_value.sum()
-#         exante_risk = np.sqrt(after_trade_ratio.T.dot(self.asset_ret_cov).dot(after_trade_ratio))
-#         exante_return = after_trade_ratio.T.dot(ret)
-#         exante_sr = exante_return / exante_risk
-#         solve_result = {
-#             "expected_weight": after_trade_ratio,
-#             "expected_holding": after_trade_value,
-#             "expected_volume": after_trade_volume,
-#             "exante_return": exante_return,
-#             "exante_risk": exante_risk,
-#             "exante_sr": exante_sr,
-#             "opt_status": prob.status
-#         }
-#         return solve_result
+#         solve_result = MaxReturnSolver(self.param).solve_without_round()
+#         w_tilde = solve_result['expected_weight']
+#         adjust_term = np.sqrt(self.kappa ** 2 / (w_tilde-self.benchmark_weight_series).T.dot(self.estimated_alpha_cov).dot(w_tilde-self.benchmark_weight_series))
+#         adjust_alpha = self.alpha_series - adjust_term * self.estimated_alpha_cov.dot(w_tilde-self.benchmark_weight_series)
+#         self.param['alpha_series'] = adjust_alpha
+#         # print(
+#         #     cosine_similarity(adjust_alpha.values.reshape(1, -1), self.param['alpha_true'].values.reshape(1, -1)))
+#         robust_solve_result = MaxReturnSolver(self.param).solve_without_round()
+#         return robust_solve_result
+
+class RobustMaxReturnSolver(MaxReturnSolver):
+    def __init__(self, param):
+        super(RobustMaxReturnSolver, self).__init__(param)
+        self.param = param
+        self.sqrt_Q = param['sqrt_Q']
+        self.kappa = param['kappa']
+        # self.estimated_alpha_cov = param['estimated_alpha_cov']
+
+    def solve_without_round(self):
+        w_c = cvx.Variable(self.alpha_series.size, nonneg=True)
+        t = cvx.Variable(1, nonneg=True)
+        # norm = cvx.norm(cvx.matmul(np.linalg.cholesky(self.estimated_alpha_cov), w_c), 2)
+        # L = np.linalg.cholesky(self.estimated_alpha_cov)
+        D = np.identity(len(self.asset_list))
+
+        # w_tilde = MaxReturnSolver(self.param).solve_without_round()['expected_weight'].values.reshape(-1, 1)
+        # one_vec = np.array([1.] * len(self.asset_list)).reshape(-1, 1)
+        # frac_part = 1. / one_vec.T.dot(D).dot(self.estimated_alpha_cov).dot(D.T).dot(one_vec)
+        # mat_part = self.estimated_alpha_cov.dot(D.T).dot(one_vec).dot(one_vec.T).dot(D).dot(self.estimated_alpha_cov)
+        # sqrt_Q = np.sqrt(np.diag(np.diag(self.estimated_alpha_cov - frac_part * mat_part)))
+
+        bm = np.array(self.benchmark_weight_series.values)
+        norm = cvx.norm(cvx.matmul(self.sqrt_Q, w_c-bm), 2)
+        # 目标函数
+        ret = np.array(self.alpha_series.values)
+        objective = cvx.Maximize(cvx.sum(ret.T * w_c) - self.kappa * norm)
+        # 股票权重 + 现金权重 = 1
+        sum_cons = cvx.sum(w_c) == 1
+        # 风险约束
+        risk_cons = cvx.quad_form((w_c - bm), self.asset_ret_cov) <= self.target_risk ** 2
+        asset_lower_bounds_cons = w_c >= self.asset_lower_boundary_series.values
+        asset_upper_bounds_cons = w_c <= self.asset_upper_boundary_series.values
+        # estimated error constraint
+        # estimated_error_cons = cvx.SOC(t, np.nan_to_num(np.sqrt(self.estimated_alpha_cov), 0.)@w_c)
+        # estimated_error_cons = cvx.square(t) >= cvx.quad_form(w_c, self.estimated_alpha_cov)
+
+        constraints = [sum_cons, risk_cons]
+        if asset_lower_bounds_cons is not None:
+            constraints += [asset_lower_bounds_cons]
+        if asset_upper_bounds_cons is not None:
+            constraints += [asset_upper_bounds_cons]
+
+        for el in constraints:
+            assert (el.is_dcp())
+
+        prob = cvx.Problem(objective, constraints)
+        prob.solve(solver=self.solver, verbose=False)
+
+        # 返回结果
+        after_trade_value = self.market_value * pd.Series(index=self.alpha_series.index, data=w_c.value)
+        after_trade_volume = np.round(after_trade_value / self.current_price)
+        after_trade_volume.fillna(0, inplace=True)
+        after_trade_ratio = after_trade_value / after_trade_value.sum()
+        exante_risk = np.sqrt(after_trade_ratio.T.dot(self.asset_ret_cov).dot(after_trade_ratio))
+        exante_return = after_trade_ratio.T.dot(ret)
+        exante_sr = exante_return / exante_risk
+        solve_result = {
+            "expected_weight": after_trade_ratio,
+            "expected_holding": after_trade_value,
+            "expected_volume": after_trade_volume,
+            "exante_return": exante_return,
+            "exante_risk": exante_risk,
+            "exante_sr": exante_sr,
+            "opt_status": prob.status
+        }
+        return solve_result
 
 
 # class RobustMaxReturnSolver(MaxReturnSolver):
@@ -135,83 +147,84 @@ class RobustMaxReturnSolver(MaxReturnSolver):
 #         }
 #         return solve_result
 
-class RobustMinRiskSolver(MinRiskSolver):
-    def __init__(self, param):
-        super(RobustMinRiskSolver, self).__init__(param)
-        self.param = param.copy()
-        self.estimated_alpha_cov = param['estimated_alpha_cov']
-        self.kappa = param['kappa']
-        self.z = 0
-
-    def solve_without_round(self):
-        solve_result = MinRiskSolver(self.param).solve_without_round()
-        w_tilde = solve_result['expected_weight']
-        # print('w_tilde', w_tilde)
-        adjust_term = np.sqrt(self.kappa ** 2 / (w_tilde-self.benchmark_weight_series).T.dot(self.estimated_alpha_cov).dot(w_tilde-self.benchmark_weight_series))
-        # print('adjust_term', adjust_term)
-        # print(self.estimated_alpha_cov)
-        adjust_alpha = self.alpha_series - adjust_term * self.estimated_alpha_cov.dot(w_tilde-self.benchmark_weight_series)
-        # print(adjust_alpha)
-
-        self.param['alpha_series'] = adjust_alpha
-
-        solve_result = MinRiskSolver(self.param).solve_without_round()
-        return solve_result
-
-
 # class RobustMinRiskSolver(MinRiskSolver):
 #     def __init__(self, param):
 #         super(RobustMinRiskSolver, self).__init__(param)
-#         self.param = param
+#         self.param = param.copy()
 #         self.estimated_alpha_cov = param['estimated_alpha_cov']
 #         self.kappa = param['kappa']
+#         self.z = 0
 #
 #     def solve_without_round(self):
-#         w_c = cvx.Variable(self.alpha_series.size, nonneg=True)
-#         # t = cvx.Variable(1, nonneg=True)
-#         # 目标函数
-#         ret = np.array(self.alpha_series.values)
-#         bm = np.array(self.benchmark_weight_series.values)
-#         objective = cvx.Minimize(cvx.quad_form((w_c - bm), self.asset_ret_cov))
-#         # 股票权重 + 现金权重 = 1
-#         sum_cons = cvx.sum(w_c) == 1
-#         # alpha约束，带estimated error
-#         # estimated_error_cons = cvx.SOC((ret.T * w_c - self.target_return), self.kappa * np.nan_to_num(np.sqrt(self.estimated_alpha_cov), 0.) @ w_c)
-#         estimated_error_cons = ret.T * w_c - self.kappa * cvx.norm(cvx.matmul(np.linalg.cholesky(self.estimated_alpha_cov), w_c), 2) >= self.target_return
-#         # ret_cons = ret.T * w_c >= self.target_return
+#         solve_result = MinRiskSolver(self.param).solve_without_round()
+#         w_tilde = solve_result['expected_weight']
+#         # print('w_tilde', w_tilde)
+#         adjust_term = np.sqrt(self.kappa ** 2 / (w_tilde-self.benchmark_weight_series).T.dot(self.estimated_alpha_cov).dot(w_tilde-self.benchmark_weight_series))
+#         # print('adjust_term', adjust_term)
+#         # print(self.estimated_alpha_cov)
+#         adjust_alpha = self.alpha_series - adjust_term * self.estimated_alpha_cov.dot(w_tilde-self.benchmark_weight_series)
+#         # print(adjust_alpha)
 #
-#         asset_lower_bounds_cons = w_c >= self.asset_lower_boundary_series.values
-#         asset_upper_bounds_cons = w_c <= self.asset_upper_boundary_series.values
-#         constraints = [sum_cons, estimated_error_cons]
-#         if asset_lower_bounds_cons is not None:
-#             constraints += [asset_lower_bounds_cons]
-#         if asset_upper_bounds_cons is not None:
-#             constraints += [asset_upper_bounds_cons]
+#         self.param['alpha_series'] = adjust_alpha
 #
-#         for el in constraints:
-#             assert (el.is_dcp())
-#
-#         prob = cvx.Problem(objective, constraints)
-#         prob.solve(solver=self.solver, verbose=False)
-#
-#         # 返回结果
-#         after_trade_value = self.market_value * pd.Series(index=self.alpha_series.index, data=w_c.value)
-#         after_trade_volume = np.round(after_trade_value / self.current_price)
-#         after_trade_volume.fillna(0, inplace=True)
-#         after_trade_ratio = after_trade_value / after_trade_value.sum()
-#         exante_risk = np.sqrt(after_trade_ratio.T.dot(self.asset_ret_cov).dot(after_trade_ratio))
-#         exante_return = after_trade_ratio.T.dot(ret)
-#         exante_sr = exante_return / exante_risk
-#         solve_result = {
-#             "expected_weight": after_trade_ratio,
-#             "expected_holding": after_trade_value,
-#             "expected_volume": after_trade_volume,
-#             "exante_return": exante_return,
-#             "exante_risk": exante_risk,
-#             "exante_sr": exante_sr,
-#             "opt_status": prob.status
-#         }
+#         solve_result = MinRiskSolver(self.param).solve_without_round()
 #         return solve_result
+
+
+class RobustMinRiskSolver(MinRiskSolver):
+    def __init__(self, param):
+        super(RobustMinRiskSolver, self).__init__(param)
+        self.param = param
+        self.sqrt_Q = param['sqrt_Q']
+        self.kappa = param['kappa']
+
+    def solve_without_round(self):
+        w_c = cvx.Variable(self.alpha_series.size, nonneg=True)
+        # t = cvx.Variable(1, nonneg=True)
+        # 目标函数
+        ret = np.array(self.alpha_series.values)
+        bm = np.array(self.benchmark_weight_series.values)
+        objective = cvx.Minimize(cvx.quad_form((w_c - bm), self.asset_ret_cov))
+        # 股票权重 + 现金权重 = 1
+        sum_cons = cvx.sum(w_c) == 1
+        # alpha约束，带estimated error
+        # estimated_error_cons = cvx.SOC((ret.T * w_c - self.target_return), self.kappa * np.nan_to_num(np.sqrt(self.estimated_alpha_cov), 0.) @ w_c)
+        # estimated_error_cons = ret.T * w_c - self.kappa * cvx.norm(cvx.matmul(self.sqrt_Q, w_c-bm), 2) >= self.target_return
+        soc_con = cvx.SOC((ret.T * w_c - self.target_return), self.kappa * cvx.matmul(self.sqrt_Q, w_c-bm))
+        # ret_cons = ret.T * w_c >= self.target_return
+
+        asset_lower_bounds_cons = w_c >= self.asset_lower_boundary_series.values
+        asset_upper_bounds_cons = w_c <= self.asset_upper_boundary_series.values
+        constraints = [sum_cons, soc_con]
+        if asset_lower_bounds_cons is not None:
+            constraints += [asset_lower_bounds_cons]
+        if asset_upper_bounds_cons is not None:
+            constraints += [asset_upper_bounds_cons]
+
+        for el in constraints:
+            assert (el.is_dcp())
+
+        prob = cvx.Problem(objective, constraints)
+        prob.solve(solver=self.solver, verbose=False)
+
+        # 返回结果
+        after_trade_value = self.market_value * pd.Series(index=self.alpha_series.index, data=w_c.value)
+        after_trade_volume = np.round(after_trade_value / self.current_price)
+        after_trade_volume.fillna(0, inplace=True)
+        after_trade_ratio = after_trade_value / after_trade_value.sum()
+        exante_risk = np.sqrt(after_trade_ratio.T.dot(self.asset_ret_cov).dot(after_trade_ratio))
+        exante_return = after_trade_ratio.T.dot(ret)
+        exante_sr = exante_return / exante_risk
+        solve_result = {
+            "expected_weight": after_trade_ratio,
+            "expected_holding": after_trade_value,
+            "expected_volume": after_trade_volume,
+            "exante_return": exante_return,
+            "exante_risk": exante_risk,
+            "exante_sr": exante_sr,
+            "opt_status": prob.status
+        }
+        return solve_result
 
 def simple_example():
     equity_list = ['A', 'B']
@@ -276,23 +289,23 @@ def real_example():
     market_value = 1.
     current_price = pd.Series(index=equity_list, data=1.)
 
-    benchmark_weight_series = pd.Series(index=equity_list, data=1./len(equity_list))
+    benchmark_weight_series = pd.Series(index=equity_list, data=0./len(equity_list))
     # benchmark_weight_series['cash'] = 0.
     asset_lower_boundary_series = pd.Series(index=equity_list, data=0.)
     # asset_lower_boundary_series['cash'] = 0.
     asset_upper_boundary_series = pd.Series(index=equity_list, data=1.)
     # asset_upper_boundary_series['cash'] = 0.
 
-    target_risk = 0.20
-    target_return = 0.1
-    kappa_list = [0, 0.5, 0.8, 1, 1.3, 1.8]
+    target_risk = 0.10
+    target_return = 0.05
+    kappa_list = [0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.5, 0.8, 1, 1.3, 1.8, 100]
     lamb = 0.025
 
     # expected_weight_sum = None
     exante_return_sum = None
     experiment_time = 1
     period = 100
-
+    print('equity_list', equity_list)
     param = {
         'asset_list': equity_list,
         'alpha_series': alpha_true,  # estimated alpha
@@ -304,6 +317,7 @@ def real_example():
         'asset_lower_boundary_series': asset_lower_boundary_series,
         'asset_upper_boundary_series': asset_upper_boundary_series,
         'target_risk': target_risk,
+        'target_return': target_return
 
     }
     true_result = MaxReturnSolver(param).solve_without_round()
@@ -322,12 +336,24 @@ def real_example():
         # sample_cov1 = np.cov(data1.T)
         error_cov1 = np.cov(error1)
         alpha_1 = pd.Series(index=equity_list, data=data1.mean(axis=0))  # estimate alpha
+        alpha1_std = np.std(alpha_1, ddof=1)
+        # sqrt_Q1 = np.diag((alpha_1 - alpha_true).abs().values)
+        # sqrt_Q1 = np.diag([alpha1_std] * len(equity_list))
+        sqrt_Q1 = np.diag(np.diag(error_cov1) ** 0.5)
+        sqrt_Q1[0, 0] = 10.
+        print('sqrt_Q1', np.diag(sqrt_Q1))
 
         data2 = np.random.multivariate_normal(alpha_true, cov_df, size=period)
         error2 = data2.T - np.expand_dims(alpha_true, axis=1)
         # sample_cov2 = np.cov(data2.T)
         error_cov2 = np.cov(error2)
         alpha_2 = pd.Series(index=equity_list, data=data2.mean(axis=0))  # estimate alpha
+        alpha2_std = np.std(alpha_2, ddof=1)
+        # sqrt_Q2 = np.diag((alpha_2 - alpha_true).abs().values)
+        # sqrt_Q2 = np.diag([alpha2_std] * len(equity_list))
+        sqrt_Q2 = np.diag(np.diag(error_cov2) ** 0.5)
+        sqrt_Q2[0, 0] = 10.
+        print('sqrt_Q2', np.diag(sqrt_Q2))
         for kappa in kappa_list:
             param = {
                 'asset_list': equity_list,
@@ -343,7 +369,8 @@ def real_example():
                 'target_return': target_return,
                 'kappa': kappa,
                 'estimated_alpha_cov': (1-lamb) * error_cov1 / period,
-                'alpha_true': alpha_true
+                'alpha_true': alpha_true,
+                'sqrt_Q': sqrt_Q1
             }
 
             robust_result1 = RobustMaxReturnSolver(param).solve_without_round()
@@ -362,7 +389,8 @@ def real_example():
                 'target_return': target_return,
                 'kappa': kappa,
                 'estimated_alpha_cov': (1-lamb) * error_cov2 / period,
-                'alpha_true': alpha_true
+                'alpha_true': alpha_true,
+                'sqrt_Q': sqrt_Q2
             }
 
             robust_result2 = RobustMaxReturnSolver(param).solve_without_round()
@@ -395,10 +423,10 @@ def real_example():
     print(expected_weight_df)
     print(true_expected_weight.sort_index())
 
-    print(exante_return_sum)
-    print(true_result['exante_return'])
+    print('exante_return_sum', exante_return_sum)
+    print('true_result["exante_return"]', true_result['exante_return'])
 
-    print(weight_corr_df)
+    print('weight_corr_df', weight_corr_df)
 
     # print('robust_result1', robust_result1['expected_weight'])
     # print('robust_result2', robust_result2['expected_weight'])
