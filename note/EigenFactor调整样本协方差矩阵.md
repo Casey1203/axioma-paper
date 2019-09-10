@@ -77,3 +77,5 @@ $$
 \overline{\lambda}(k)=\frac{1}{T}\sum_{t}\lambda_t(k)
 $$
 我们把$\overline{\lambda}(k)$按照仿真特征组合的方差从小到大排序画出来，得到图2，预测方差最小的仿真特征组合的波动率偏差为1.5，而预测方差最大的仿真特征组合的波动率偏差则为0.96，整体的波动率偏差的分布和图(1.c)很相近。
+
+![ori bias test](https://raw.githubusercontent.com/Casey1203/axioma-paper/master/note/img/vol_bias.png)
