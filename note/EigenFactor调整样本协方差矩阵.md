@@ -8,7 +8,7 @@ $$
 
 接下来定义样本协方差矩阵
 $$
-V_0(mn)=\frac{1}{T-1}\sum_{t=1}^T{(f_{mt}-\overline{f_m})(f_{nt}-\overline{f_n})} \tag{2}
+V_0(mn)=\frac{1}{T-1}\sum_{t=1}^T{(f_{mt}-\overline{f_m})(f_{nt}-\overline{f_n})}}\tag{2
 $$
 其中$T=200$。这里写成了矩阵中每个元素的形式。下标$m$和$n$表示第$m$和$n$只股票。
 
@@ -20,7 +20,7 @@ b_t=\frac{R_t}{\sigma_t} \tag{3}
 $$
 z值得标准差就是偏差统计量
 $$
-B=\sqrt{\frac{1}{\tau-1} \sum_{t=1}^{\tau}\left(b_{t}-\overline{b}\right)^{2}} \tag{4}
+B=\sqrt{\frac{1}{\tau-1} \sum_{t=1}^{\tau}\left(b_{t}-\overline{b}\right)^{2}}\tag{4}
 $$
 其中$\tau$是测试窗口大小，可以设置成滚动窗口。
 
@@ -38,7 +38,7 @@ $$
 
 **随机组合**：产生100个随机组合。他们的收益率为
 $$
-R_{t}^{l}=\sum_{n} \varepsilon_{n}^{l} f_{n t} \tag{5}
+R_{t}^{l}=\sum_{n} \varepsilon_{n}^{l} f_{n t}\tag{5}
 $$
 上标$l$表示第$l$个组合，$\epsilon_n^l$表示第$l$个组合中第$n$只股票的权重，由标准正态分布采样得到，这个向量是均值为0，表示现金中性。图(1.b)表示这些组合的偏差统计量，它们均在1附近，表示样本协方差$V_0$对随机组合的风险预测还不错。
 
